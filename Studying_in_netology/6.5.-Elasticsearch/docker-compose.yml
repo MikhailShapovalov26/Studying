@@ -1,0 +1,15 @@
+version: "3.3"
+services:
+        elasticsearch: 
+                build: .
+                restart: "no"
+                container_name: netology_test
+                volumes:
+                   -  ./conf/elasticsearch.yml:/usr/elastic/elasticsearch-8.2.2/config/elasticsearch.yml:rw
+                   -  ./log/:/var/log/elasticsearch:rw
+                   -  ./data/:/var/lib/elasticsearch:rw
+                env_file:
+                   -  test.env
+                ports:
+                   - '9200:9200'
+                   - '9300:9300'

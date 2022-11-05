@@ -1,0 +1,20 @@
+version: "3.3"
+
+services:
+
+ postgres:
+    image: postgres:13
+    restart: always
+    hostname: postgresdb
+    container_name: post
+    volumes:
+          - db:/var/lib/postgres/data:rw
+    environment:
+          POSTGRES_DB: test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          PGDATA: /var/lib/postgres/data/pgdata
+    ports:
+         - 5432:5432
+volumes:
+   db: 

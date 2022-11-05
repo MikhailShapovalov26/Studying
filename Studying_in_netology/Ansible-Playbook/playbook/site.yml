@@ -1,0 +1,92 @@
+---
+- name: Install Java and elasticsearch
+  hosts: all
+  become: true
+  gather_facts: False
+  tasks:
+  - name: install java
+    apt:
+      name: default-jre
+      state: latest
+
+- name: Install Elasticsearch
+  hosts: elasticsearch
+  tasks:
+
+    - name: check filesystem existence
+      shell: if [[ -d "tmp/elasticsearch-{{ elastic_version }}-linux-x86_64.tar.gz" ]]; then echo "true"; fi
+      register: file_exists
+
+    - name: Upload tar.gz Elasticsearch from remote URL
+      get_url:
+        url: "https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-{{ elastic_version }}-linux-x86_64.tar.gz"
+        dest: "/tmp/elasticsearch-{{ elastic_version }}-linux-x86_64.tar.gz"
+        mode: 0755
+        timeout: 60
+        force: true
+        validate_certs: false
+      register: get_elastic
+      until: get_elastic is succeeded
+      when: file_exists.stdout == "true"
+      tags: elastic
+    - name: Create directrory for Elasticsearch
+      file:
+        state: directory
+        path: "{{ elastic_home }}"
+      tags: elastic
+    - name: Extract Elasticsearch in the installation directory
+      become: true
+      unarchive:
+        copy: false
+        src: "/tmp/elasticsearch-{{ elastic_version }}-linux-x86_64.tar.gz"
+        dest: "{{ elastic_home }}"
+        extra_opts: [--strip-components=1]
+        creates: "{{ elastic_home }}/bin/elasticsearch"
+      tags:
+        - elastic
+    - name: Set environment Elastic
+      become: true
+      template:
+        src: templates/elk.sh.j2
+        dest: /etc/profile.d/elk.sh
+      tags: elastic
+  
+- name: Install Kibana
+  hosts: all
+  tasks:
+
+    - name: check filesystem existence
+      shell: if [[ -d "tmp/kibana-8.3.2-linux-x86_64.tar.gz" ]]; then echo "true"; fi
+      register: file_exists
+
+    - name: dowland kibana
+      get_url:
+        url: "https://artifacts.elastic.co/downloads/kibana/kibana-8.3.2-linux-x86_64.tar.gz"
+        dest: "/tmp/kibana-8.3.2-linux-x86_64.tar.gz"
+        mode: 0755
+        timeout: 60
+        force: true
+        validate_certs: false
+      register: get_kibana
+      until: get_kibana is succeeded
+      when: file_exists.stdout == "true"
+      tags: kibana
+    - name: Create directory from kibana
+      file:
+        state: directory
+        path: "/opt/elastic/kibana-8.3.2"
+      tags: kibana
+    - name: Coppy to files bin
+      become: true
+      unarchive:
+        copy: false
+        src: "/tmp/kibana-8.3.2-linux-x86_64.tar.gz"
+        dest: "/opt/elastic/kibana-8.3.2"
+        extra_opts: [--strip-components=1]
+        creates: "/opt/elastic/kibana-8.3.2/bin/kibana"
+      tags: kibana
+    - name: set environment kibana
+      template: 
+        src: templates/kib.sh.j2
+        dest: /etc/profile.d/kib.sh
+      tags: kibana 
